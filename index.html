@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  Página puente del Mapa del conocimiento. Dentro de claude.ai el Mapa corre en un marco que no deja abrir
+  otra aplicación, y en el iPhone ningún enlace obsidian:// sale de él (prueba del 2026-11-24 en la app de
+  Claude, en Safari y en Chrome). Los enlaces https sí salen, en una pestaña nueva, así que la ficha de cada
+  clase enlaza aquí con el enlace de Obsidian detrás del «#», y esta página lo abre.
+
+  Privacidad: lo que va detrás del «#» no sale nunca del aparato, porque el navegador no lo envía al servidor,
+  de modo que GitHub solo ve que se pidió esta página. La página no carga nada de fuera, borra el enlace de la
+  barra de direcciones en cuanto lo lee y solo abre direcciones que empiecen por obsidian://.
+
+  Dónde vive y quién la mantiene: este archivo es el original, y se publica tal cual como index.html del
+  repositorio público juancandelario/abrir-en-obsidian, servido por GitHub Pages en
+  https://juancandelario.github.io/abrir-en-obsidian/. Quien la cambie aquí la vuelve a subir allí en la
+  misma sesión, y si cambia esa dirección cambia también la constante PUENTE de
+  mapa-del-conocimiento.plantilla.html, que es la única pieza que la usa.
+-->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:">
+<link rel="icon" href="data:,">
+<title>Abrir en Obsidian</title>
+<style>
+:root {
+  --fondo: #f6f5fa; --papel: #ffffff; --tinta: #1c1a26; --tenue: #615c74; --linea: #dedbe8;
+  --acento: #6a4fd6; --acento-tinta: #ffffff;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fondo: #14121b; --papel: #1d1a27; --tinta: #ebe8f4; --tenue: #a39db6; --linea: #332e42;
+    --acento: #9c86f2; --acento-tinta: #14121b; color-scheme: dark; }
+}
+html, body { margin: 0; background: var(--fondo); color: var(--tinta); }
+body { font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+main { max-width: 480px; margin: 0 auto; padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 32px max(20px, env(safe-area-inset-left)); display: grid; gap: 16px; }
+h1 { margin: 0; font-size: 22px; line-height: 1.25; }
+p { margin: 0; }
+.destino { background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; overflow-wrap: anywhere; }
+.destino span { display: block; font-size: 13px; color: var(--tenue); }
+a.abrir { display: block; padding: 16px; border-radius: 12px; background: var(--acento); color: var(--acento-tinta); text-align: center; text-decoration: none; font-weight: 600; }
+a.abrir:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
+.tenue { color: var(--tenue); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo">Abriendo Obsidian…</h1>
+  <p class="destino" id="destino" hidden></p>
+  <a class="abrir" id="abrir" href="#" hidden>Abrir en Obsidian</a>
+  <p class="tenue" id="nota">Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.</p>
+</main>
+<script>
+(function () {
+  var crudo = location.hash.slice(1), url = '';
+  try { url = decodeURIComponent(crudo); } catch (e) { url = ''; }
+  if (!/^obsidian:\/\//i.test(url)) url = '';
+  // El enlace sale de la barra y de la entrada del historial en cuanto se lee
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+
+  var titulo = document.getElementById('titulo'), destino = document.getElementById('destino');
+  var abrir = document.getElementById('abrir'), nota = document.getElementById('nota');
+  if (!url) {
+    titulo.textContent = 'No hay nada que abrir';
+    nota.textContent = 'Esta página abre en Obsidian los enlaces del Mapa del conocimiento, y se llegó a ella sin ninguno.';
+    return;
+  }
+
+  // Qué se va a abrir, para que se vea antes de que pregunte el teléfono
+  var params = {};
+  try { params = Object.fromEntries(new URLSearchParams(url.split('?')[1] || '')); } catch (e) {}
+  var que = '', cual = '';
+  if (/^obsidian:\/\/open/i.test(url) && params.file) { que = 'La nota'; cual = params.file.split('/').pop(); }
+  else if (/^obsidian:\/\/search/i.test(url) && params.query) { que = 'La búsqueda'; cual = params.query; }
+  if (cual) {
+    var s = document.createElement('span'); s.textContent = que + (params.vault ? ', en ' + params.vault : '');
+    destino.appendChild(s); destino.appendChild(document.createTextNode(cual)); destino.hidden = false;
+  }
+  abrir.href = url; abrir.hidden = false;
+
+  // Cuando Obsidian se abre, la pestaña deja de verse; entonces intenta cerrarse para no dejar rastro
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) setTimeout(function () { try { window.close(); } catch (e) {} }, 400);
+  });
+  setTimeout(function () { location.href = url; }, 150);
+})();
+</script>
+</body>
+</html>
