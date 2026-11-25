@@ -52,40 +52,56 @@ a.abrir:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
   <p class="destino" id="destino" hidden></p>
   <a class="abrir" id="abrir" href="#" hidden>Abrir en Obsidian</a>
   <p class="tenue" id="nota">Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.</p>
+  <p class="tenue" id="recibido" hidden></p>
 </main>
 <script>
 (function () {
-  var crudo = location.hash.slice(1), url = '';
-  try { url = decodeURIComponent(crudo); } catch (e) { url = ''; }
-  if (!/^obsidian:\/\//i.test(url)) url = '';
-  // El enlace sale de la barra y de la entrada del historial en cuanto se lee
-  try { history.replaceState(null, '', location.pathname); } catch (e) {}
-
   var titulo = document.getElementById('titulo'), destino = document.getElementById('destino');
   var abrir = document.getElementById('abrir'), nota = document.getElementById('nota');
-  if (!url) {
-    titulo.textContent = 'No hay nada que abrir';
-    nota.textContent = 'Esta página abre en Obsidian los enlaces del Mapa del conocimiento, y se llegó a ella sin ninguno.';
-    return;
+  var recibido = document.getElementById('recibido');
+
+  // Lee el enlace de detrás del «#». Corre al cargar y también cuando llega un enlace nuevo a esta misma pestaña,
+  // porque el iPhone puede reutilizarla sin recargarla, y entonces el código no vuelve a correr solo (2026-11-24).
+  function procesar() {
+    var crudo = location.hash.slice(1), url = '';
+    if (!crudo) return false;
+    try { url = decodeURIComponent(crudo); } catch (e) { url = ''; }
+    if (!/^obsidian:\/\//i.test(url)) url = '';
+    // El enlace sale de la barra y de la entrada del historial en cuanto se lee
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    if (!url) return false;
+
+    // Qué se va a abrir, para que se vea antes de que pregunte el teléfono
+    var params = {};
+    try { params = Object.fromEntries(new URLSearchParams(url.split('?')[1] || '')); } catch (e) {}
+    var que = '', cual = '';
+    if (/^obsidian:\/\/open/i.test(url) && params.file) { que = 'La nota'; cual = params.file.split('/').pop(); }
+    else if (/^obsidian:\/\/search/i.test(url) && params.query) { que = 'La búsqueda'; cual = params.query; }
+    destino.textContent = '';
+    if (cual) {
+      var s = document.createElement('span'); s.textContent = que + (params.vault ? ', en ' + params.vault : '');
+      destino.appendChild(s); destino.appendChild(document.createTextNode(cual));
+    }
+    destino.hidden = !cual;
+    titulo.textContent = 'Abriendo Obsidian…';
+    nota.textContent = 'Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.';
+    abrir.href = url; abrir.hidden = false;
+    recibido.textContent = 'Enlace recibido a las ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '.';
+    recibido.hidden = false;
+    setTimeout(function () { location.href = url; }, 150);
+    return true;
   }
 
-  // Qué se va a abrir, para que se vea antes de que pregunte el teléfono
-  var params = {};
-  try { params = Object.fromEntries(new URLSearchParams(url.split('?')[1] || '')); } catch (e) {}
-  var que = '', cual = '';
-  if (/^obsidian:\/\/open/i.test(url) && params.file) { que = 'La nota'; cual = params.file.split('/').pop(); }
-  else if (/^obsidian:\/\/search/i.test(url) && params.query) { que = 'La búsqueda'; cual = params.query; }
-  if (cual) {
-    var s = document.createElement('span'); s.textContent = que + (params.vault ? ', en ' + params.vault : '');
-    destino.appendChild(s); destino.appendChild(document.createTextNode(cual)); destino.hidden = false;
+  if (!procesar()) {
+    titulo.textContent = 'No hay nada que abrir';
+    nota.textContent = 'Esta página abre en Obsidian los enlaces del Mapa del conocimiento, y se llegó a ella sin ninguno.';
   }
-  abrir.href = url; abrir.hidden = false;
+  window.addEventListener('hashchange', procesar);
 
   // Cuando Obsidian se abre, la pestaña deja de verse; entonces intenta cerrarse para no dejar rastro
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) setTimeout(function () { try { window.close(); } catch (e) {} }, 400);
   });
-  setTimeout(function () { location.href = url; }, 150);
 })();
 </script>
 </body>
