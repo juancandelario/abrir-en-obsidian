@@ -3,7 +3,9 @@
   Página puente del Mapa del conocimiento. Dentro de claude.ai el Mapa corre en un marco que no deja abrir
   otra aplicación, y en el iPhone ningún enlace obsidian:// sale de él (prueba del 2026-11-24 en la app de
   Claude, en Safari y en Chrome). Los enlaces https sí salen, en una pestaña nueva, así que la ficha de cada
-  clase enlaza aquí con el enlace de Obsidian detrás del «#», y esta página lo abre.
+  clase enlaza aquí con el enlace de Obsidian detrás del «#», y esta página lo abre. Probada el 2026-11-26 en
+  el iPad y en el Mac, con la nota y con la búsqueda; en el iPhone de Juan Obsidian se abre pero no cambia de
+  nota, también sin plugins, y el fallo es de ese Obsidian y no de esta página.
 
   Privacidad: lo que va detrás del «#» no sale nunca del aparato, porque el navegador no lo envía al servidor,
   de modo que GitHub solo ve que se pidió esta página. La página no carga nada de fuera, borra el enlace de la
@@ -52,7 +54,6 @@ a.abrir:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
   <p class="destino" id="destino" hidden></p>
   <a class="abrir" id="abrir" href="#" hidden>Abrir en Obsidian</a>
   <p class="tenue" id="nota">Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.</p>
-  <a class="tenue" id="directo" href="#" hidden>Abrir directo en Obsidian, sin el atajo</a>
   <p class="tenue" id="recibido" hidden></p>
 </main>
 <script>
@@ -63,16 +64,9 @@ a.abrir:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
 
   // Lee el enlace de detrás del «#». Corre al cargar y también cuando llega un enlace nuevo a esta misma pestaña,
   // porque el iPhone puede reutilizarla sin recargarla, y entonces el código no vuelve a correr solo (2026-11-24).
-  // Con «atajo:» delante, la orden no va directa a Obsidian sino al atajo «Abrir en Obsidian» del iPhone, que abre
-  // Obsidian primero y le pasa el enlace después. Obsidian 1.15.1 en iOS abre la app pero ignora la orden cuando es
-  // el enlace lo que la trae al frente (prueba del 2026-11-24, también sin plugins), y el foro de Obsidian da como
-  // remedio abrir la app antes. En prueba mientras no se confirme que funciona.
-  var ATAJO = 'Abrir en Obsidian';
-  var directo = document.getElementById('directo');
   function procesar() {
-    var crudo = location.hash.slice(1), url = '', conAtajo = false;
+    var crudo = location.hash.slice(1), url = '';
     if (!crudo) return false;
-    if (crudo.indexOf('atajo:') === 0) { conAtajo = true; crudo = crudo.slice(6); }
     try { url = decodeURIComponent(crudo); } catch (e) { url = ''; }
     if (!/^obsidian:\/\//i.test(url)) url = '';
     // El enlace sale de la barra y de la entrada del historial en cuanto se lee
@@ -91,16 +85,12 @@ a.abrir:focus-visible { outline: 3px solid var(--acento); outline-offset: 3px; }
       destino.appendChild(s); destino.appendChild(document.createTextNode(cual));
     }
     destino.hidden = !cual;
-    var ir = conAtajo ? 'shortcuts://run-shortcut?name=' + encodeURIComponent(ATAJO) + '&input=text&text=' + encodeURIComponent(url) : url;
     titulo.textContent = 'Abriendo Obsidian…';
-    nota.textContent = conAtajo
-      ? 'Pasa por el atajo «' + ATAJO + '», que abre Obsidian y después la nota. Si el teléfono pregunta si quieres abrir Atajos, acepta. Si no se abre solo, toca el botón.'
-      : 'Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.';
-    abrir.href = ir; abrir.hidden = false;
-    directo.href = url; directo.hidden = !conAtajo;
+    nota.textContent = 'Si el teléfono pregunta si quieres abrir Obsidian, acepta. Si no se abre solo, toca el botón.';
+    abrir.href = url; abrir.hidden = false;
     recibido.textContent = 'Enlace recibido a las ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '.';
     recibido.hidden = false;
-    setTimeout(function () { location.href = ir; }, 150);
+    setTimeout(function () { location.href = url; }, 150);
     return true;
   }
 
